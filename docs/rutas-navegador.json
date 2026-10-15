@@ -1,0 +1,62 @@
+[
+  {
+    "filas": 0,
+    "ruta": "/ligas/1/jugadores",
+    "tarjetas": 4,
+    "titulos": [
+      "Jugadores",
+      "Jugadores",
+      "Ari Brisa",
+      "Noa Brisa",
+      "Lian Brisa",
+      "Elia Brisa"
+    ]
+  },
+  {
+    "filas": 0,
+    "ruta": "/ligas/1/partidos",
+    "tarjetas": 4,
+    "titulos": [
+      "Partidos",
+      "Partidos"
+    ]
+  },
+  {
+    "filas": 0,
+    "ruta": "/ligas/1/en-vivo",
+    "tarjetas": 0,
+    "titulos": [
+      "Partido en Directo"
+    ]
+  },
+  {
+    "filas": 0,
+    "ruta": "/ligas/1/noticias",
+    "tarjetas": 3,
+    "titulos": [
+      "Noticias",
+      "Noticias",
+      "Comienza la segunda jornada — Liga Aurora",
+      "Una fecha llena de goles — Liga Aurora",
+      "Encuentro de clubes participantes — Liga Aurora"
+    ]
+  },
+  {
+    "filas": 4,
+    "ruta": "/ligas/1/tabla",
+    "tarjetas": 0,
+    "titulos": [
+      "Tabla de Posiciones",
+      "Tabla de Posiciones"
+    ]
+  },
+  {
+    "filas": 4,
+    "ruta": "/ligas/1/estadisticas",
+    "tarjetas": 0,
+    "titulos": [
+      "Estadísticas",
+      "Estadísticas"
+    ]
+  }
+]

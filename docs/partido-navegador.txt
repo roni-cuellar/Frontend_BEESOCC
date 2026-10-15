@@ -1,0 +1,117 @@
+- main:
+  - complementary:
+    - strong: BEESOCC
+    - generic: Todo tu campeonato en un solo lugar.
+    - strong: Liga Aurora
+    - generic: Temporada 2026
+    - navigation "Módulos de la liga":
+      - link "Dashboard":
+        - /url: /ligas/1/dashboard
+      - link "Equipos":
+        - /url: /ligas/1/equipos
+      - link "Jugadores":
+        - /url: /ligas/1/jugadores
+      - link "Partidos":
+        - /url: /ligas/1/partidos
+      - link "Partido en Directo":
+        - /url: /ligas/1/en-vivo
+      - link "Noticias":
+        - /url: /ligas/1/noticias
+      - link "Tabla de Posiciones":
+        - /url: /ligas/1/tabla
+      - link "Estadísticas":
+        - /url: /ligas/1/estadisticas
+    - button "← Mis Ligas"
+    - button "Volver al inicio"
+  - button "Abrir menú": ☰
+  - text: Administración de liga
+  - heading "Partido en Directo" [level=1]
+  - generic: Demo · datos locales
+  - button "← Volver a Partidos"
+  - generic: Partido
+  - combobox "Partido":
+    - option "Selecciona un partido"
+    - option "Aurora FC vs Águilas Verdes — En vivo" [selected]
+    - option "Aurora FC vs Tigres del Valle — finalizado"
+    - option "Águilas Verdes vs Deportivo Brisa — finalizado"
+    - option "Tigres del Valle vs Deportivo Brisa — pendiente"
+  - generic: Jornada 2
+  - strong: EN VIVO
+  - generic: 2026-10-15 · 16:00
+  - generic: ⚽
+  - heading "Aurora FC" [level=2]
+  - strong: 1 - 1
+  - generic: ⚽
+  - heading "Águilas Verdes" [level=2]
+  - button "Finalizar partido"
+  - text: Evento
+  - heading "Registrar evento" [level=3]
+  - generic: Tipo de evento
+  - combobox "Tipo de evento":
+    - option "Gol" [selected]
+    - option "Asistencia"
+    - option "Tarjeta amarilla"
+    - option "Tarjeta roja"
+    - option "Falta"
+    - option "Autogol"
+  - generic: Equipo
+  - combobox "Equipo":
+    - option "Aurora FC" [selected]
+    - option "Águilas Verdes"
+  - generic: Jugador
+  - combobox "Jugador":
+    - option "Sin jugador" [selected]
+    - option "Ari Brisa"
+    - option "Noa Brisa"
+    - option "Lian Brisa"
+    - option "Elia Brisa"
+  - generic: Minuto
+  - spinbutton "Minuto"
+  - generic: Descripción
+  - textbox "Descripción":
+    - /placeholder: Descripción opcional
+  - button "Registrar evento"
+  - heading "Línea de tiempo" [level=2]
+  - paragraph: Eventos registrados durante el encuentro.
+  - article:
+    - generic: 12'
+    - strong: ⚽ Gol
+    - paragraph: Elia Brisa
+    - generic: Aurora FC · Evento ficticio de demostración.
+    - button "Editar"
+    - button "Eliminar"
+  - article:
+    - generic: 12'
+    - strong: 🎯 Asistencia
+    - paragraph: Lian Brisa
+    - generic: Aurora FC · Evento ficticio de demostración.
+    - button "Editar"
+    - button "Eliminar"
+  - article:
+    - generic: 24'
+    - strong: 🟨 Tarjeta amarilla
+    - paragraph: Noa Luz
+    - generic: Águilas Verdes · Evento ficticio de demostración.
+    - button "Editar"
+    - button "Eliminar"
+  - article:
+    - generic: 32'
+    - strong: ⚽ Gol
+    - paragraph: Elia Luz
+    - generic: Águilas Verdes · Evento ficticio de demostración.
+    - button "Editar"
+    - button "Eliminar"
+  - article:
+    - generic: 38'
+    - strong: ⚠ Falta
+    - paragraph: Noa Brisa
+    - generic: Aurora FC · Evento ficticio de demostración.
+    - button "Editar"
+    - button "Eliminar"
+  - article:
+    - generic: 44'
+    - strong: 🟥 Tarjeta roja
+    - paragraph: Noa Luz
+    - generic: Águilas Verdes · Evento ficticio de demostración.
+    - button "Editar"
+    - button "Eliminar"
