@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Outlet, useLocation, useNavigate, useParams } from 'react-router-dom'
 import HeaderDashboard from '../components/HeaderDashboard'
 import Sidebar from '../components/Sidebar'
-import { datosLocales, mismoId } from '../services/datosLocales'
+import { useBeesoccStore } from '../stores/beesoccStore'
+import { mismoId } from '../stores/utilidades'
 
 const nombresSeccion = {
   dashboard: 'Dashboard', equipos: 'Equipos', jugadores: 'Jugadores', partidos: 'Partidos',
@@ -10,11 +11,11 @@ const nombresSeccion = {
 }
 
 function DashboardLigaLayout({ ligaId }) {
+  const liga = useBeesoccStore((estado) => estado.ligas.find((item) => mismoId(item.id, ligaId)))
   const [menuAbierto, setMenuAbierto] = useState(false)
   const ubicacion = useLocation()
   const navegar = useNavigate()
-  // La URL es suficiente para seleccionar una liga; no necesitamos estado global React.
-  const liga = datosLocales.ligas.find((item) => mismoId(item.id, ligaId))
+  // La URL identifica la liga; su información actual se consulta en Zustand.
   const segmento = ubicacion.pathname.split('/').at(-1)
   const seccion = nombresSeccion[segmento] || 'Dashboard'
 
@@ -40,3 +41,4 @@ function DashboardLayout() {
 }
 
 export default DashboardLayout
+

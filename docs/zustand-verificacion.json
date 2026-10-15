@@ -1,0 +1,32 @@
+{
+  "fecha": "2026-10-15",
+  "proyecto": "frontend-visual",
+  "zustand": "5.0.15",
+  "originalesVerificados": 467,
+  "originalesModificados": 0,
+  "archivosDeDatosRutasCssRecursosVerificados": 14,
+  "archivosDeDatosRutasCssRecursosModificados": 0,
+  "instalacion": "correcta",
+  "lint": "sin errores ni advertencias",
+  "build": "correcto, 76 módulos",
+  "pruebasStore": "11 grupos correctos con Zustand y persist reales",
+  "renderizados": "29 rutas y variantes sin backend",
+  "navegador": [
+    "equipo creado y recuperado al recargar",
+    "jugador creado y dorsal repetido rechazado",
+    "gol convertido temporalmente en falta: marcador y calendario de 1-1 a 0-1; goleadores actualizados",
+    "recarga conservó la edición del evento",
+    "evento original restaurado; equipo temporal y su jugador retirados",
+    "capturas de equipos a 390x844 y dashboard con viewport predeterminado"
+  ],
+  "limitaciones": [
+    "automatización de fecha y hora no completada",
+    "diálogo de confirmación interrumpió la automatización; eliminaciones relacionadas probadas en el store",
+    "no se comprobó cada control de cada formulario en todos los tamaños",
+    "no se capturó tráfico HAR; revisión estática de src sin HTTP"
+  ],
+  "capturas": [
+    "docs/zustand-dashboard.jpg",
+    "docs/zustand-movil.jpg"
+  ]
+}

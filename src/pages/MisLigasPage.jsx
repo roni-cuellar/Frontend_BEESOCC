@@ -1,75 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ErroresFormulario from '../components/ErroresFormulario'
 import LigaCard from '../components/LigaCard'
 import LigaForm from '../components/LigaForm'
 import MarcaBeesocc from '../components/MarcaBeesocc'
 import { obtenerErrores } from '../services/errores'
-import {
-  actualizarLiga,
-  crearLiga,
-  eliminarLiga,
-  obtenerLigas,
-} from '../services/ligaService'
+import { useBeesoccStore } from '../stores/beesoccStore'
 
 function MisLigasPage() {
-  const [ligas, setLigas] = useState([])
-  const [cargando, setCargando] = useState(true)
+  const ligas = useBeesoccStore((estado) => estado.ligas)
+  const { crearLiga, actualizarLiga, eliminarLiga } = useBeesoccStore((estado) => estado.accionesLigas)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [ligaEditando, setLigaEditando] = useState(null)
+  const [ligaEditandoId, setLigaEditandoId] = useState(null)
   const [errores, setErrores] = useState([])
   const [guardando, setGuardando] = useState(false)
-
   const navegar = useNavigate()
-
-  useEffect(() => {
-    let activo = true
-
-    async function cargarLigas() {
-      try {
-        const respuesta = await obtenerLigas()
-        if (activo) setLigas(respuesta.data.ligas)
-      } catch {
-        if (activo) setErrores(['No se pudieron cargar las ligas.'])
-      } finally {
-        if (activo) setCargando(false)
-      }
-    }
-
-    cargarLigas()
-
-    return () => { activo = false }
-  }, [])
+  const ligaEditando = ligas.find((liga) => liga.id === ligaEditandoId) || null
 
   function abrirCreacion() {
-    setLigaEditando(null)
+    setLigaEditandoId(null)
     setErrores([])
     setMostrarFormulario(true)
   }
 
   function abrirEdicion(liga) {
-    setLigaEditando(liga)
+    setLigaEditandoId(liga.id)
     setErrores([])
     setMostrarFormulario(true)
   }
 
-  async function guardarLiga(datos) {
+  function guardarLiga(datos) {
     setGuardando(true)
     setErrores([])
-
     try {
-      if (ligaEditando) {
-        const respuesta = await actualizarLiga(ligaEditando.id, datos)
-        setLigas((actuales) => actuales.map((liga) => (
-          liga.id === ligaEditando.id ? respuesta.data.liga : liga
-        )))
-      } else {
-        const respuesta = await crearLiga(datos)
-        setLigas((actuales) => [...actuales, respuesta.data.liga])
-      }
-
+      if (ligaEditando) actualizarLiga(ligaEditando.id, datos)
+      else crearLiga(datos)
       setMostrarFormulario(false)
-      setLigaEditando(null)
+      setLigaEditandoId(null)
     } catch (error) {
       setErrores(obtenerErrores(error))
     } finally {
@@ -77,25 +44,13 @@ function MisLigasPage() {
     }
   }
 
-  async function borrarLiga(liga) {
-    const confirmar = window.confirm(
-      `¿Seguro que deseas eliminar "${liga.nombre}"?\n\nSe eliminará la información asociada a ella.`,
-    )
-
-    if (!confirmar) return
-
+  function borrarLiga(liga) {
+    if (!window.confirm(`¿Seguro que deseas eliminar "${liga.nombre}"?\n\nSe eliminará la información asociada a ella.`)) return
     setErrores([])
-
-    try {
-      await eliminarLiga(liga.id)
-      setLigas((actuales) => actuales.filter((item) => item.id !== liga.id))
-    } catch {
-      setErrores(['No se pudo eliminar la liga.'])
-    }
+    try { eliminarLiga(liga.id) } catch (error) { setErrores(obtenerErrores(error)) }
   }
 
   function administrarLiga(liga) {
-
     navegar(`/ligas/${liga.id}/dashboard`)
   }
 
@@ -108,15 +63,13 @@ function MisLigasPage() {
 
       <section className="contenido-ligas">
         <div className="titulo-acciones">
-          <div><span className="etiqueta-superior">Administración</span><h1>Mis Ligas</h1><p>Demostración local: selecciona una liga. Los cambios se reinician al actualizar.</p></div>
+          <div><span className="etiqueta-superior">Administración</span><h1>Mis Ligas</h1><p>Demostración local: selecciona una liga. Los cambios se conservan en este navegador.</p></div>
           <button type="button" onClick={abrirCreacion}>+ Crear Liga</button>
         </div>
 
         {!mostrarFormulario && <ErroresFormulario mensajes={errores} />}
 
-        {cargando ? (
-          <p className="mensaje-estado">Cargando ligas...</p>
-        ) : ligas.length ? (
+        {ligas.length ? (
           <div className="ligas-grid">
             {ligas.map((liga) => (
               <LigaCard key={liga.id} liga={liga} onAdministrar={administrarLiga} onEditar={abrirEdicion} onEliminar={borrarLiga} />
@@ -142,3 +95,5 @@ function MisLigasPage() {
 }
 
 export default MisLigasPage
+
+

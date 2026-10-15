@@ -1,96 +1,51 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import ErroresFormulario from '../components/ErroresFormulario'
 import PartidoCard from '../components/PartidoCard'
 import PartidoForm from '../components/PartidoForm'
-import { obtenerEquipos } from '../services/equipoService'
 import { obtenerErrores } from '../services/errores'
-import { actualizarPartido, crearPartido, eliminarPartido, obtenerPartidos } from '../services/partidoService'
-
-function obtenerParticipante(partido, rol) {
-  return partido.equipos?.find((equipo) => (equipo.rol_equipo || equipo.pivot?.rol_equipo) === rol)
-}
-
-function datosCompletos(partido, estado = partido.estado) {
-  return {
-    jornada: partido.jornada,
-    fecha: partido.fecha.slice(0, 10),
-    hora: partido.hora.slice(0, 5),
-    estado,
-    equipo_local_id: obtenerParticipante(partido, 'local').id,
-    equipo_visitante_id: obtenerParticipante(partido, 'visitante').id,
-  }
-}
+import { useBeesoccStore } from '../stores/beesoccStore'
+import { seleccionarPartidos } from '../stores/selectores'
+import { mismoId } from '../stores/utilidades'
 
 function PartidosPage() {
-  const [partidos, setPartidos] = useState([])
-  const [equipos, setEquipos] = useState([])
-  const [cargando, setCargando] = useState(true)
+  const partidosGuardados = useBeesoccStore((estado) => estado.partidos)
+  const equiposGuardados = useBeesoccStore((estado) => estado.equipos)
+  const eventosGuardados = useBeesoccStore((estado) => estado.eventos)
+  const { crearPartido, actualizarPartido, eliminarPartido } = useBeesoccStore((estado) => estado.accionesPartidos)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [partidoEditando, setPartidoEditando] = useState(null)
+  const [partidoEditandoId, setPartidoEditandoId] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [errores, setErrores] = useState([])
   const [filtro, setFiltro] = useState('todos')
   const { ligaId } = useParams()
   const navegar = useNavigate()
-
-  useEffect(() => {
-    let activo = true
-
-    async function cargarDatos() {
-      setCargando(true)
-      setPartidos([])
-      setEquipos([])
-      setErrores([])
-      try {
-        // Cargamos partidos y equipos de la liga al mismo tiempo.
-        const [respuestaPartidos, respuestaEquipos] = await Promise.all([obtenerPartidos(ligaId), obtenerEquipos(ligaId)])
-        if (!activo) return
-        setPartidos(respuestaPartidos.data.partidos)
-        setEquipos(respuestaEquipos.data.equipos)
-      } catch (error) {
-        if (activo) setErrores([obtenerErrores(error)[0]])
-      } finally {
-        if (activo) setCargando(false)
-      }
-    }
-
-    cargarDatos()
-    return () => { activo = false }
-  }, [ligaId])
-
-  const partidosFiltrados = useMemo(() => filtro === 'todos' ? partidos : partidos.filter((partido) => partido.estado === filtro), [filtro, partidos])
+  const equipos = equiposGuardados.filter((equipo) => mismoId(equipo.liga_id, ligaId))
+  const partidos = seleccionarPartidos({ partidos: partidosGuardados, equipos: equiposGuardados, eventos: eventosGuardados }, ligaId)
+  const partidosFiltrados = filtro === 'todos' ? partidos : partidos.filter((partido) => partido.estado === filtro)
+  const partidoEditando = partidos.find((partido) => partido.id === partidoEditandoId) || null
 
   function abrirCreacion() {
     if (equipos.length < 2) return
-    setPartidoEditando(null)
+    setPartidoEditandoId(null)
     setErrores([])
     setMostrarFormulario(true)
   }
 
   function abrirEdicion(partido) {
-    setPartidoEditando(partido)
+    setPartidoEditandoId(partido.id)
     setErrores([])
     setMostrarFormulario(true)
   }
 
-  async function guardarPartido(datos) {
-    if (datos.equipo_local_id === datos.equipo_visitante_id) {
-      setErrores(['Los equipos deben ser diferentes.'])
-      return
-    }
+  function guardarPartido(datos) {
     setGuardando(true)
     setErrores([])
     try {
-      if (partidoEditando) {
-        const respuesta = await actualizarPartido(partidoEditando.id, datos)
-        setPartidos((actuales) => actuales.map((partido) => partido.id === partidoEditando.id ? respuesta.data.partido : partido))
-      } else {
-        const respuesta = await crearPartido(ligaId, datos)
-        setPartidos((actuales) => [...actuales, respuesta.data.partido])
-      }
+      if (partidoEditando) actualizarPartido(partidoEditando.id, datos)
+      else crearPartido(ligaId, datos)
       setMostrarFormulario(false)
-      setPartidoEditando(null)
+      setPartidoEditandoId(null)
     } catch (error) {
       setErrores(obtenerErrores(error))
     } finally {
@@ -98,29 +53,16 @@ function PartidosPage() {
     }
   }
 
-  async function borrarPartido(partido) {
+  function borrarPartido(partido) {
     if (!window.confirm('¿Seguro que deseas eliminar este partido?')) return
     setErrores([])
-    try {
-      await eliminarPartido(partido.id)
-      setPartidos((actuales) => actuales.filter((item) => item.id !== partido.id))
-    } catch (error) {
-      setErrores([obtenerErrores(error)[0]])
-    }
+    try { eliminarPartido(partido.id) } catch (error) { setErrores(obtenerErrores(error)) }
   }
 
-  async function cambiarEstado(partido, estado) {
+  function cambiarEstado(partido, estado) {
     setErrores([])
-    try {
-      // Reutilizamos los datos del partido para actualizar su estado en memoria.
-      const respuesta = await actualizarPartido(partido.id, datosCompletos(partido, estado))
-      setPartidos((actuales) => actuales.map((item) => item.id === partido.id ? respuesta.data.partido : item))
-    } catch (error) {
-      setErrores(obtenerErrores(error))
-    }
+    try { actualizarPartido(partido.id, { ...partido, estado }) } catch (error) { setErrores(obtenerErrores(error)) }
   }
-
-  if (cargando) return <p className="mensaje-estado">Cargando partidos...</p>
 
   return (
     <section className="partidos-page">
@@ -139,3 +81,4 @@ function PartidosPage() {
 }
 
 export default PartidosPage
+

@@ -1,94 +1,56 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import ErroresFormulario from '../components/ErroresFormulario'
 import NoticiaCard from '../components/NoticiaCard'
 import NoticiaForm from '../components/NoticiaForm'
 import { obtenerErrores } from '../services/errores'
-import { actualizarNoticia, crearNoticia, eliminarNoticia, obtenerNoticias } from '../services/noticiaService'
+import { useBeesoccStore } from '../stores/beesoccStore'
+import { mismoId } from '../stores/utilidades'
 
 function NoticiasPage() {
-  const [noticias, setNoticias] = useState([])
-  const [cargando, setCargando] = useState(true)
+  const noticiasGuardadas = useBeesoccStore((estado) => estado.noticias)
+  const { crearNoticia, actualizarNoticia, eliminarNoticia } = useBeesoccStore((estado) => estado.accionesNoticias)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [noticiaEditando, setNoticiaEditando] = useState(null)
+  const [noticiaEditandoId, setNoticiaEditandoId] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [errores, setErrores] = useState([])
   const [busqueda, setBusqueda] = useState('')
   const [busquedaAplicada, setBusquedaAplicada] = useState('')
   const { ligaId } = useParams()
-
-  async function cargarNoticias(termino = busquedaAplicada) {
-    setCargando(true)
-    setNoticias([])
-    setErrores([])
-    try {
-      // Los datos locales se ordenan por fecha de publicación.
-      const respuesta = await obtenerNoticias(ligaId, termino)
-      setNoticias(respuesta.data.noticias)
-    } catch (error) {
-      setErrores([obtenerErrores(error)[0]])
-    } finally {
-      setCargando(false)
-    }
-  }
-
-  useEffect(() => {
-    let activo = true
-
-    async function cargarLiga() {
-      setCargando(true)
-      setNoticias([])
-      setBusqueda('')
-      setBusquedaAplicada('')
-      setErrores([])
-      try {
-        const respuesta = await obtenerNoticias(ligaId)
-        if (activo) setNoticias(respuesta.data.noticias)
-      } catch (error) {
-        if (activo) setErrores([obtenerErrores(error)[0]])
-      } finally {
-        if (activo) setCargando(false)
-      }
-    }
-
-    cargarLiga()
-    return () => { activo = false }
-  }, [ligaId])
+  const termino = busquedaAplicada.toLocaleLowerCase('es')
+  const noticias = noticiasGuardadas.filter((noticia) => mismoId(noticia.liga_id, ligaId) && `${noticia.titulo} ${noticia.contenido}`.toLocaleLowerCase('es').includes(termino)).sort((a, b) => b.fecha_publicacion.localeCompare(a.fecha_publicacion))
+  const noticiaEditando = noticiasGuardadas.find((noticia) => noticia.id === noticiaEditandoId) || null
 
   function buscar(evento) {
     evento.preventDefault()
-    const termino = busqueda.trim()
-    setBusquedaAplicada(termino)
-    cargarNoticias(termino)
+    setBusquedaAplicada(busqueda.trim())
   }
 
   function limpiarBusqueda() {
     setBusqueda('')
     setBusquedaAplicada('')
-    cargarNoticias('')
   }
 
   function abrirCreacion() {
-    setNoticiaEditando(null)
+    setNoticiaEditandoId(null)
     setErrores([])
     setMostrarFormulario(true)
   }
 
   function abrirEdicion(noticia) {
-    setNoticiaEditando(noticia)
+    setNoticiaEditandoId(noticia.id)
     setErrores([])
     setMostrarFormulario(true)
   }
 
-  async function guardarNoticia(datos) {
+  function guardarNoticia(datos) {
     setGuardando(true)
     setErrores([])
     try {
-      if (noticiaEditando) await actualizarNoticia(noticiaEditando.id, datos)
-      else await crearNoticia(ligaId, datos)
+      if (noticiaEditando) actualizarNoticia(noticiaEditando.id, datos)
+      else crearNoticia(ligaId, datos)
       setMostrarFormulario(false)
-      setNoticiaEditando(null)
-      await cargarNoticias(busquedaAplicada)
+      setNoticiaEditandoId(null)
     } catch (error) {
       setErrores(obtenerErrores(error))
     } finally {
@@ -96,15 +58,10 @@ function NoticiasPage() {
     }
   }
 
-  async function borrarNoticia(noticia) {
+  function borrarNoticia(noticia) {
     if (!window.confirm('¿Seguro que deseas eliminar esta noticia?')) return
     setErrores([])
-    try {
-      await eliminarNoticia(noticia.id)
-      setNoticias((actuales) => actuales.filter((item) => item.id !== noticia.id))
-    } catch (error) {
-      setErrores([obtenerErrores(error)[0]])
-    }
+    try { eliminarNoticia(noticia.id) } catch (error) { setErrores(obtenerErrores(error)) }
   }
 
   return (
@@ -113,7 +70,7 @@ function NoticiasPage() {
       <form className="noticias-buscador" onSubmit={buscar}><label htmlFor="buscar-noticias" className="sr-only">Buscar noticias</label><input id="buscar-noticias" value={busqueda} onChange={(evento) => setBusqueda(evento.target.value)} placeholder="Buscar noticias..." /><button type="submit">Buscar</button>{busquedaAplicada && <button type="button" className="boton-cancelar" onClick={limpiarBusqueda}>Limpiar</button>}</form>
       {!mostrarFormulario && <ErroresFormulario mensajes={errores} />}
 
-      {cargando ? <p className="mensaje-estado">Cargando noticias...</p> : noticias.length ? (
+      {noticias.length ? (
         <div className="noticias-grid">{noticias.map((noticia) => <NoticiaCard key={noticia.id} noticia={noticia} onEditar={abrirEdicion} onEliminar={borrarNoticia} />)}</div>
       ) : busquedaAplicada ? (
         <div className="estado-vacio"><span>🔎</span><h2>No encontramos noticias para esta búsqueda</h2><button type="button" onClick={limpiarBusqueda}>Limpiar búsqueda</button></div>
@@ -127,3 +84,5 @@ function NoticiasPage() {
 }
 
 export default NoticiasPage
+
+

@@ -1,80 +1,45 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import EquipoCard from '../components/EquipoCard'
 import EquipoForm from '../components/EquipoForm'
 import ErroresFormulario from '../components/ErroresFormulario'
 import { obtenerErrores } from '../services/errores'
-import {
-  actualizarEquipo,
-  crearEquipo,
-  eliminarEquipo,
-  obtenerEquipos,
-} from '../services/equipoService'
+import { useBeesoccStore } from '../stores/beesoccStore'
+import { mismoId } from '../stores/utilidades'
 
 function EquiposPage() {
-  const [equipos, setEquipos] = useState([])
-  const [cargando, setCargando] = useState(true)
+  const equiposGuardados = useBeesoccStore((estado) => estado.equipos)
+  const { crearEquipo, actualizarEquipo, eliminarEquipo } = useBeesoccStore((estado) => estado.accionesEquipos)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [equipoEditando, setEquipoEditando] = useState(null)
+  const [equipoEditandoId, setEquipoEditandoId] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [errores, setErrores] = useState([])
   const { ligaId } = useParams()
   const navegar = useNavigate()
-
-  useEffect(() => {
-    let activo = true
-
-    async function cargarEquipos() {
-      setCargando(true)
-      setEquipos([])
-      setErrores([])
-
-      try {
-        // Cargamos los equipos de la liga indicada en la URL.
-        const respuesta = await obtenerEquipos(ligaId)
-        if (activo) setEquipos(respuesta.data.equipos)
-      } catch (error) {
-        if (!activo) return
-        const mensaje = obtenerErrores(error)[0]
-        setErrores([mensaje])
-      } finally {
-        if (activo) setCargando(false)
-      }
-    }
-
-    cargarEquipos()
-    return () => { activo = false }
-  }, [ligaId])
+  const equipos = equiposGuardados.filter((equipo) => mismoId(equipo.liga_id, ligaId))
+  const equipoEditando = equipos.find((equipo) => equipo.id === equipoEditandoId) || null
 
   function abrirCreacion() {
-    setEquipoEditando(null)
+    setEquipoEditandoId(null)
     setErrores([])
     setMostrarFormulario(true)
   }
 
   function abrirEdicion(equipo) {
-    setEquipoEditando(equipo)
+    setEquipoEditandoId(equipo.id)
     setErrores([])
     setMostrarFormulario(true)
   }
 
-  async function guardarEquipo(datos) {
+  function guardarEquipo(datos) {
     setGuardando(true)
     setErrores([])
-
     try {
-      if (equipoEditando) {
-        const respuesta = await actualizarEquipo(equipoEditando.id, datos)
-        setEquipos((actuales) => actuales.map((equipo) => (
-          equipo.id === equipoEditando.id ? respuesta.data.equipo : equipo
-        )))
-      } else {
-        const respuesta = await crearEquipo(ligaId, datos)
-        setEquipos((actuales) => [...actuales, respuesta.data.equipo])
-      }
-
+      if (equipoEditando) actualizarEquipo(equipoEditando.id, datos)
+      else crearEquipo(ligaId, datos)
+      // La suscripción a Zustand actualiza las tarjetas sin copiar otra lista.
       setMostrarFormulario(false)
-      setEquipoEditando(null)
+      setEquipoEditandoId(null)
     } catch (error) {
       setErrores(obtenerErrores(error))
     } finally {
@@ -82,23 +47,10 @@ function EquiposPage() {
     }
   }
 
-  async function borrarEquipo(equipo) {
-    const confirmar = window.confirm(
-      `¿Seguro que deseas eliminar "${equipo.nombre}"?\n\nTambién se eliminarán los jugadores asociados.`,
-    )
-
-    if (!confirmar) return
-
+  function borrarEquipo(equipo) {
+    if (!window.confirm(`¿Seguro que deseas eliminar "${equipo.nombre}"?\n\nTambién se eliminarán los jugadores asociados.`)) return
     setErrores([])
-
-    try {
-      await eliminarEquipo(equipo.id)
-      // Eliminamos el equipo de la lista local sin recargar la página.
-      setEquipos((actuales) => actuales.filter((item) => item.id !== equipo.id))
-    } catch (error) {
-      const mensaje = obtenerErrores(error)[0]
-      setErrores([mensaje])
-    }
+    try { eliminarEquipo(equipo.id) } catch (error) { setErrores(obtenerErrores(error)) }
   }
 
   return (
@@ -110,9 +62,7 @@ function EquiposPage() {
 
       {!mostrarFormulario && <ErroresFormulario mensajes={errores} />}
 
-      {cargando ? (
-        <p className="mensaje-estado">Cargando equipos...</p>
-      ) : equipos.length ? (
+      {equipos.length ? (
         <div className="equipos-grid">
           {equipos.map((equipo) => (
             <EquipoCard
@@ -143,3 +93,5 @@ function EquiposPage() {
 }
 
 export default EquiposPage
+
+

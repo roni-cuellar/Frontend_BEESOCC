@@ -1,153 +1,70 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import ErroresFormulario from '../components/ErroresFormulario'
 import JugadorCard from '../components/JugadorCard'
 import JugadorForm from '../components/JugadorForm'
-import { obtenerEquipos } from '../services/equipoService'
 import { obtenerErrores } from '../services/errores'
-import {
-  actualizarJugador,
-  crearJugador,
-  eliminarJugador,
-  obtenerJugadores,
-} from '../services/jugadorService'
+import { useBeesoccStore } from '../stores/beesoccStore'
+import { mismoId } from '../stores/utilidades'
 
 function JugadoresPage() {
-  const [equipos, setEquipos] = useState([])
-  const [equipoSeleccionado, setEquipoSeleccionado] = useState('')
-  const [jugadores, setJugadores] = useState([])
-  const [cargandoEquipos, setCargandoEquipos] = useState(true)
-  const [cargandoJugadores, setCargandoJugadores] = useState(false)
+  const equiposGuardados = useBeesoccStore((estado) => estado.equipos)
+  const jugadoresGuardados = useBeesoccStore((estado) => estado.jugadores)
+  const { crearJugador, actualizarJugador, eliminarJugador } = useBeesoccStore((estado) => estado.accionesJugadores)
+  const [seleccion, setSeleccion] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
-  const [jugadorEditando, setJugadorEditando] = useState(null)
+  const [jugadorEditandoId, setJugadorEditandoId] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [errores, setErrores] = useState([])
   const { ligaId } = useParams()
   const [parametros] = useSearchParams()
-  const equipoDesdeUrl = parametros.get('equipo')
   const navegar = useNavigate()
-
-  useEffect(() => {
-    let activo = true
-
-    async function cargarEquipos() {
-      setCargandoEquipos(true)
-      setEquipos([])
-      setEquipoSeleccionado('')
-      setJugadores([])
-      setErrores([])
-
-      try {
-        const respuesta = await obtenerEquipos(ligaId)
-        if (!activo) return
-
-        const nuevosEquipos = respuesta.data.equipos
-        setEquipos(nuevosEquipos)
-
-        // Seleccionamos el equipo de la URL solo si pertenece a esta liga.
-        const equipoValido = nuevosEquipos.some((equipo) => String(equipo.id) === equipoDesdeUrl)
-        setEquipoSeleccionado(equipoValido ? equipoDesdeUrl : String(nuevosEquipos[0]?.id || ''))
-      } catch (error) {
-        if (!activo) return
-        setErrores([obtenerErrores(error)[0]])
-      } finally {
-        if (activo) setCargandoEquipos(false)
-      }
-    }
-
-    cargarEquipos()
-    return () => { activo = false }
-  }, [equipoDesdeUrl, ligaId])
-
-  useEffect(() => {
-    let activo = true
-
-    async function cargarJugadores() {
-      setJugadores([])
-      setErrores([])
-
-      if (!equipoSeleccionado) {
-        setCargandoJugadores(false)
-        return
-      }
-
-      setCargandoJugadores(true)
-
-      try {
-        // Cargamos únicamente los jugadores del equipo seleccionado.
-        const respuesta = await obtenerJugadores(equipoSeleccionado)
-        if (activo) setJugadores(respuesta.data.jugadores)
-      } catch (error) {
-        if (!activo) return
-        setErrores([obtenerErrores(error)[0]])
-      } finally {
-        if (activo) setCargandoJugadores(false)
-      }
-    }
-
-    cargarJugadores()
-    return () => { activo = false }
-  }, [equipoSeleccionado])
+  const equipos = equiposGuardados.filter((equipo) => mismoId(equipo.liga_id, ligaId))
+  const equipoDesdeUrl = parametros.get('equipo')
+  const equipoInicial = equipos.find((equipo) => mismoId(equipo.id, equipoDesdeUrl)) || equipos[0]
+  const equipoElegido = seleccion?.origen === equipoDesdeUrl ? seleccion.id : String(equipoInicial?.id || '')
+  const equipoSeleccionado = equipos.some((equipo) => mismoId(equipo.id, equipoElegido)) ? equipoElegido : ''
+  const jugadores = jugadoresGuardados.filter((jugador) => mismoId(jugador.equipo_id, equipoSeleccionado))
+  const jugadorEditando = jugadores.find((jugador) => jugador.id === jugadorEditandoId) || null
 
   function seleccionarEquipo(evento) {
     setMostrarFormulario(false)
-    setEquipoSeleccionado(evento.target.value)
+    setErrores([])
+    setSeleccion({ origen: equipoDesdeUrl, id: evento.target.value })
   }
 
   function abrirCreacion() {
-    setJugadorEditando(null)
+    setJugadorEditandoId(null)
     setErrores([])
     setMostrarFormulario(true)
   }
 
   function abrirEdicion(jugador) {
-    setJugadorEditando(jugador)
+    setJugadorEditandoId(jugador.id)
     setErrores([])
     setMostrarFormulario(true)
   }
 
-  async function guardarJugador(datos) {
+  function guardarJugador(datos) {
     setGuardando(true)
     setErrores([])
-
     try {
-      if (jugadorEditando) {
-        const respuesta = await actualizarJugador(jugadorEditando.id, datos)
-        setJugadores((actuales) => actuales.map((jugador) => (
-          jugador.id === jugadorEditando.id ? respuesta.data.jugador : jugador
-        )))
-      } else {
-        const respuesta = await crearJugador(equipoSeleccionado, datos)
-        setJugadores((actuales) => [...actuales, respuesta.data.jugador])
-      }
-
+      if (jugadorEditando) actualizarJugador(jugadorEditando.id, datos)
+      else crearJugador(equipoSeleccionado, datos)
       setMostrarFormulario(false)
-      setJugadorEditando(null)
+      setJugadorEditandoId(null)
     } catch (error) {
-      const mensajes = obtenerErrores(error)
-      const dorsalRepetido = mensajes.some((mensaje) => /taken|utilizado|tomado/i.test(mensaje))
-      setErrores(dorsalRepetido
-        ? ['El dorsal ya está siendo utilizado por otro jugador de este equipo.']
-        : mensajes)
+      setErrores(obtenerErrores(error))
     } finally {
       setGuardando(false)
     }
   }
 
-  async function borrarJugador(jugador) {
+  function borrarJugador(jugador) {
     if (!window.confirm(`¿Seguro que deseas eliminar a ${jugador.nombre} ${jugador.apellido}?`)) return
-
     setErrores([])
-
-    try {
-      await eliminarJugador(jugador.id)
-      setJugadores((actuales) => actuales.filter((item) => item.id !== jugador.id))
-    } catch (error) {
-      setErrores([obtenerErrores(error)[0]])
-    }
+    try { eliminarJugador(jugador.id) } catch (error) { setErrores(obtenerErrores(error)) }
   }
-
-  if (cargandoEquipos) return <p className="mensaje-estado">Cargando equipos...</p>
 
   return (
     <section className="jugadores-page">
@@ -166,8 +83,6 @@ function JugadoresPage() {
 
           {!equipoSeleccionado ? (
             <p className="mensaje-estado">Selecciona un equipo para consultar sus jugadores.</p>
-          ) : cargandoJugadores ? (
-            <p className="mensaje-estado">Cargando jugadores...</p>
           ) : jugadores.length ? (
             <div className="jugadores-grid">{jugadores.map((jugador) => <JugadorCard key={jugador.id} jugador={jugador} onEditar={abrirEdicion} onEliminar={borrarJugador} />)}</div>
           ) : (
@@ -191,3 +106,5 @@ function JugadoresPage() {
 }
 
 export default JugadoresPage
+
+
